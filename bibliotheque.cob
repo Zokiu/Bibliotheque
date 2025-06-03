@@ -116,22 +116,22 @@ OCESQL     copy "sqlca.cbl".
       ******************************************************************
 OCESQL*
 OCESQL 01  SQ0001.
-OCESQL     02  FILLER PIC X(176) VALUE "CREATE TABLE IF NOT EXISTS 'li"
-OCESQL  &  "vre' ( id SERIAL PRIMARY KEY, code CHAR(13), titre CHAR(38"
-OCESQL  &  "), auteur-id CHAR(03), type CHAR(16), annee CHAR(04), edit"
-OCESQL  &  "ion CHAR(23), dispo CHAR(03) )".
+OCESQL     02  FILLER PIC X(187) VALUE "USE DB-NOM CREATE TABLE IF NOT"
+OCESQL  &  " EXISTS 'livre' ( id SERIAL PRIMARY KEY, code CHAR(13), ti"
+OCESQL  &  "tre CHAR(38), auteur-id CHAR(03), type CHAR(16), annee CHA"
+OCESQL  &  "R(04), edition CHAR(23), dispo CHAR(03) )".
 OCESQL     02  FILLER PIC X(1) VALUE X"00".
 OCESQL*
 OCESQL 01  SQ0002.
-OCESQL     02  FILLER PIC X(093) VALUE "CREATE TABLE IF NOT EXISTS 'Au"
-OCESQL  &  "teur' ( id SERIAL PRIMARY KEY, nom CHAR(22), prenom CHAR(2"
-OCESQL  &  "2), )".
+OCESQL     02  FILLER PIC X(104) VALUE "USE DB-NOM CREATE TABLE IF NOT"
+OCESQL  &  " EXISTS 'Auteur' ( id SERIAL PRIMARY KEY, nom CHAR(22), pr"
+OCESQL  &  "enom CHAR(22), )".
 OCESQL     02  FILLER PIC X(1) VALUE X"00".
 OCESQL*
 OCESQL 01  SQ0003.
-OCESQL     02  FILLER PIC X(131) VALUE "CREATE TABLE IF NOT EXISTS 'em"
-OCESQL  &  "prunt' ( code CHAR(13), nom CHAR(22), prenom CHAR(22), tel"
-OCESQL  &  " CHAR(10), date CHAR(10), retour CHAR(10) )".
+OCESQL     02  FILLER PIC X(142) VALUE "USE DB-NOM CREATE TABLE IF NOT"
+OCESQL  &  " EXISTS 'emprunt' ( code CHAR(13), nom CHAR(22), prenom CH"
+OCESQL  &  "AR(22), tel CHAR(10), date CHAR(10), retour CHAR(10) )".
 OCESQL     02  FILLER PIC X(1) VALUE X"00".
 OCESQL*
        PROCEDURE DIVISION.
@@ -181,6 +181,8 @@ OCESQL     END-CALL.
       ******************************************************************
        0100-CREATION-TABLE-DEB.
 OCESQL*    EXEC SQL 
+OCESQL*    USE DB-NOM;
+OCESQL*    USE DB-NOM;
 OCESQL*    CREATE TABLE IF NOT EXISTS 'livre' (
 OCESQL*     id SERIAL PRIMARY KEY,
 OCESQL*     code CHAR(13),
@@ -197,7 +199,8 @@ OCESQL          BY REFERENCE SQLCA
 OCESQL          BY REFERENCE SQ0001
 OCESQL     END-CALL.
 
-OCESQL*    EXEC SQL  
+OCESQL*    EXEC SQL
+OCESQL*    USE DB-NOM;
 OCESQL*    CREATE TABLE IF NOT EXISTS 'Auteur' (
 OCESQL*     id SERIAL PRIMARY KEY,
 OCESQL*     nom CHAR(22),
@@ -209,7 +212,8 @@ OCESQL          BY REFERENCE SQLCA
 OCESQL          BY REFERENCE SQ0002
 OCESQL     END-CALL.
 
-OCESQL*    EXEC SQL  
+OCESQL*    EXEC SQL
+OCESQL*    USE DB-NOM;
 OCESQL*    CREATE TABLE IF NOT EXISTS 'emprunt' (
 OCESQL*     code CHAR(13),
 OCESQL*     nom CHAR(22),
