@@ -37,8 +37,7 @@
 
        01  WS-LIVRE.
            05 MAX-LIVRE          PIC 9(03).
-           05 WS-LIVRE-TABLE OCCURS 1 TO 999 DEPENDING ON MAX-LIVRE
-                                             INDEXED   BY IDX-LIVRE.
+           05 WS-LIVRE-TABLE OCCURS 999 TIMES INDEXED BY IDX-LIVRE.
                10 WS-LIVRE-ID    PIC 9(03).
                10 WS-CODE        PIC 9(13).
                10 WS-TITRE       PIC X(38).
@@ -53,16 +52,14 @@
 
        01  WS-AUTEUR.
            05 MAX-AUTEUR         PIC 9(03).
-           05 WS-AUTEUR-TABLE OCCURS 1 TO 999 DEPENDING ON MAX-AUTEUR  
-                                              INDEXED BY   IDX-AUTEUR.
+           05 WS-AUTEUR-TABLE OCCURS 999 TIMES INDEXED BY IDX-AUTEUR.
                 10 WS-A-ID       PIC 9(03).
                 10 WS-A-NOM      PIC X(22).
                 10 WS-A-PRENOM   PIC X(22).
 
        01  WS-EMPRUNT.
            05 MAX-EMPRUNT        PIC 9(03).
-           05 WS-EMPRUNT-TABLE OCCURS 1 TO 999 DEPENDING ON MAX-EMPRUNT
-                                               INDEXED BY   IDX-EMPRUNT.
+           05 WS-EMPRUNT-TABLE OCCURS 999 TIMES INDEXED BY IDX-EMPRUNT.
                 10 WS-E-CODE     PIC 9(13).
                 10 WS-E-NOM      PIC X(22).
                 10 WS-E-PRENOM   PIC X(22).
