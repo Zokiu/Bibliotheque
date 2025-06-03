@@ -1,10 +1,19 @@
+      ******************************************************************
+      *
+      ******************************************************************
        IDENTIFICATION DIVISION.
        PROGRAM-ID. bibliotheque.
        AUTHOR.    Yassine&Benoit&Terry.
 
+      ******************************************************************
+      *
+      ******************************************************************
        ENVIRONMENT DIVISION.
        CONFIGURATION SECTION.
 
+      ******************************************************************
+      *
+      ******************************************************************
        INPUT-OUTPUT SECTION.
        FILE-CONTROL.
 
@@ -28,7 +37,9 @@
            03 R-ANNEE            PIC X(04).
            03 R-EDITION          PIC X(23).
 
-
+      ******************************************************************
+      *
+      ******************************************************************
        WORKING-STORAGE SECTION.
        
        01  F-INPUT-STATUS        PIC X(02) VALUE SPACE.
@@ -67,7 +78,7 @@
                 10 WS-E-DATE     PIC X(10).
                 10 WS-E-RETOUR   PIC X(10).
 
-       01  WS-CRUD               PIC 9(01) VALUE 1.
+       01  WS-CHOIX              PIC 9(01).
        01  WS-SAISIE             PIC X(255).
 
        EXEC SQL BEGIN DECLARE SECTION END-EXEC.
@@ -99,7 +110,9 @@
 
        EXEC SQL INCLUDE SQLCA END-EXEC.
 
-
+      ******************************************************************
+      *
+      ******************************************************************
        PROCEDURE DIVISION.
 
            PERFORM 0000-CONNEXION-DEB
@@ -107,6 +120,9 @@
 
            PERFORM 0100-CREATION-TABLE-DEB
            THRU    0100-CREATION-TABLE-FIN.
+
+           PERFORM 0200-MENU-DEB
+           THRU    0200-MENU-FIN.
 
            STOP RUN.
 
@@ -120,8 +136,19 @@
            ACCEPT PASSWD.
            DISPLAY "Veuillez renseigner la base de donnee: ".
            ACCEPT DBNAME.
+
+           EXEC SQL 
+           CONNECT :USERNAME IDENTIFIED BY :PASSWD USING :DBNAME 
+           END-EXEC.
+
+           IF SQLCODE NOT = 0
+             DISPLAY "Erreur de connexion SQLCODE: " SQLCODE
+           END-IF.
+
+           EXIT.
        0000-CONNEXION-FIN.
 
+      ******************************************************************
        0100-CREATION-TABLE-DEB.
            EXEC SQL 
            CREATE TABLE IF NOT EXISTS 'livre' (
@@ -154,4 +181,76 @@
             retour CHAR(10)
            )
            END-EXEC.
+
+           EXIT.
        0100-CREATION-TABLE-FIN.
+
+      ******************************************************************
+       0200-MENU-DEB.
+
+           IF SQLCODE = 0
+             MOVE 1 TO WS-CHOIX
+             PERFORM UNTIL WS-CHOIX = 0
+               DISPLAY "1 - Ajouter un enregistrement"
+               DISPLAY "2 - Afficher un enregistrement"
+               DISPLAY "3 - Mettre a jour un enregistrement"
+               DISPLAY "4 - Supprimer un enregistrement"
+               DISPLAY "9 - Quitter"
+               ACCEPT WS-CHOIX
+               EVALUATE WS-CHOIX
+                   WHEN = 1
+                       PERFORM 0210-AJOUT-DEB
+                       THRU    0210-AJOUT-FIN
+                   WHEN = 2
+                       PERFORM 0220-LIRE-DEB
+                       THRU    0220-LIRE-FIN
+                   WHEN = 3
+                       PERFORM 0230-MAJ-DEB
+                       THRU    0230-MAJ-FIN
+                   WHEN = 4
+                       PERFORM 0240-SUPPR-DEB
+                       THRU    0240-SUPPR-FIN
+                   WHEN OTHER
+                       DISPLAY "Mauvaise saisie, veuillez recommencer"
+             END-PERFORM
+
+             
+
+           END-IF.
+
+           EXIT.
+       0200-MENU-FIN.
+
+      ******************************************************************
+       0210-AJOUT-DEB.
+      *Ajout table livre + Auteur (Si n'exsite pas).
+           
+           EXIT.
+       0210-AJOUT-FIN.
+
+      ******************************************************************     
+       0220-LIRE-DEB.
+      *Lecture Livre JOINTURE Auteur + Emprunt(Si livre pas dispo).
+
+           EXIT.
+       0220-LIRE-FIN.
+
+      ******************************************************************
+       0230-MAJ-DEB.
+           MOVE 1 TO WS-CHOIX.
+      *Menu choix de table pour maj.
+
+           EXIT.
+       0230-MAJ-FIN.
+
+      ******************************************************************
+       0240-SUPPR-DEB.
+           MOVE 1 TO WS-CHOIX.
+      *Menu pour choix entre livre ou emprunt.
+
+           EXIT.
+       0240-SUPPR-FIN.
+
+      ******************************************************************
+
+
