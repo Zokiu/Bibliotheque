@@ -1,8 +1,8 @@
-CREATE TABLE IF NOT EXISTS 'livre' (
+CREATE TABLE IF NOT EXISTS livre (
             id SERIAL PRIMARY KEY,
             code CHAR(13),
             titre CHAR(38),
-            auteur-id CHAR(03),
+            auteurid CHAR(03),
             type CHAR(16),
             annee CHAR(04),
             edition CHAR(23),
@@ -10,14 +10,14 @@ CREATE TABLE IF NOT EXISTS 'livre' (
            )
            ;
 
-CREATE TABLE IF NOT EXISTS 'Auteur' (
+CREATE TABLE IF NOT EXISTS auteur (
             id SERIAL PRIMARY KEY,
             nom CHAR(22),
-            prenom CHAR(22),
+            prenom CHAR(22)
            )
            ;
 
-CREATE TABLE IF NOT EXISTS 'emprunt' (
+CREATE TABLE IF NOT EXISTS emprunt (
             code CHAR(13),
             nom CHAR(22),
             prenom CHAR(22),
@@ -26,4 +26,3 @@ CREATE TABLE IF NOT EXISTS 'emprunt' (
             retour CHAR(10)
            )
            ;
-           
