@@ -81,7 +81,7 @@
        01  WS-CHOIX              PIC 9(01).
        01  WS-SAISIE             PIC X(255).
 
-       EXEC SQL BEGIN DECLARE SECTION END-EXEC.
+OCESQL*EXEC SQL BEGIN DECLARE SECTION END-EXEC.
            01 LIVRE-ID           PIC X(03).
            01 LIVRE-CODE         PIC X(13).
            01 LIVRE-TITRE        PIC X(38).
@@ -106,13 +106,34 @@
            01 DB-UTILISATEUR     PIC X(20).
            01 DB-MDP             PIC X(20).
            01 DB-NOM             PIC X(20).
-       EXEC SQL END DECLARE SECTION END-EXEC.
+OCESQL*EXEC SQL END DECLARE SECTION END-EXEC.
 
-       EXEC SQL INCLUDE SQLCA END-EXEC.
+OCESQL*EXEC SQL INCLUDE SQLCA END-EXEC.
+OCESQL     copy "sqlca.cbl".
 
       ******************************************************************
       *
       ******************************************************************
+OCESQL*
+OCESQL 01  SQ0001.
+OCESQL     02  FILLER PIC X(176) VALUE "CREATE TABLE IF NOT EXISTS 'li"
+OCESQL  &  "vre' ( id SERIAL PRIMARY KEY, code CHAR(13), titre CHAR(38"
+OCESQL  &  "), auteur-id CHAR(03), type CHAR(16), annee CHAR(04), edit"
+OCESQL  &  "ion CHAR(23), dispo CHAR(03) )".
+OCESQL     02  FILLER PIC X(1) VALUE X"00".
+OCESQL*
+OCESQL 01  SQ0002.
+OCESQL     02  FILLER PIC X(093) VALUE "CREATE TABLE IF NOT EXISTS 'Au"
+OCESQL  &  "teur' ( id SERIAL PRIMARY KEY, nom CHAR(22), prenom CHAR(2"
+OCESQL  &  "2), )".
+OCESQL     02  FILLER PIC X(1) VALUE X"00".
+OCESQL*
+OCESQL 01  SQ0003.
+OCESQL     02  FILLER PIC X(131) VALUE "CREATE TABLE IF NOT EXISTS 'em"
+OCESQL  &  "prunt' ( code CHAR(13), nom CHAR(22), prenom CHAR(22), tel"
+OCESQL  &  " CHAR(10), date CHAR(10), retour CHAR(10) )".
+OCESQL     02  FILLER PIC X(1) VALUE X"00".
+OCESQL*
        PROCEDURE DIVISION.
 
            PERFORM 0000-CONNEXION-DEB
@@ -137,9 +158,18 @@
            DISPLAY "Veuillez renseigner la base de donnee: ".
            ACCEPT DB-NOM.
 
-           EXEC SQL 
-           CONNECT :DB-UTILISATEUR IDENTIFIED BY :DB-MDP USING :DB-NOM 
-           END-EXEC.
+OCESQL*    EXEC SQL 
+OCESQL*    CONNECT :DB-UTILISATEUR IDENTIFIED BY :DB-MDP USING :DB-NOM 
+OCESQL*    END-EXEC.
+OCESQL     CALL "OCESQLConnect" USING
+OCESQL          BY REFERENCE SQLCA
+OCESQL          BY REFERENCE DB-UTILISATEUR
+OCESQL          BY VALUE 20
+OCESQL          BY REFERENCE DB-MDP
+OCESQL          BY VALUE 20
+OCESQL          BY REFERENCE DB-NOM
+OCESQL          BY VALUE 20
+OCESQL     END-CALL.
 
            IF SQLCODE NOT = 0
              DISPLAY "Erreur de connexion SQLCODE: " SQLCODE
@@ -150,37 +180,49 @@
 
       ******************************************************************
        0100-CREATION-TABLE-DEB.
-           EXEC SQL 
-           CREATE TABLE IF NOT EXISTS 'livre' (
-            id SERIAL PRIMARY KEY,
-            code CHAR(13),
-            titre CHAR(38),
-            auteur-id CHAR(03),
-            type CHAR(16),
-            annee CHAR(04),
-            edition CHAR(23),
-            dispo CHAR(03)
-           )
-           END-EXEC.
+OCESQL*    EXEC SQL 
+OCESQL*    CREATE TABLE IF NOT EXISTS 'livre' (
+OCESQL*     id SERIAL PRIMARY KEY,
+OCESQL*     code CHAR(13),
+OCESQL*     titre CHAR(38),
+OCESQL*     auteur-id CHAR(03),
+OCESQL*     type CHAR(16),
+OCESQL*     annee CHAR(04),
+OCESQL*     edition CHAR(23),
+OCESQL*     dispo CHAR(03)
+OCESQL*    )
+OCESQL*    END-EXEC.
+OCESQL     CALL "OCESQLExec" USING
+OCESQL          BY REFERENCE SQLCA
+OCESQL          BY REFERENCE SQ0001
+OCESQL     END-CALL.
 
-           EXEC SQL  
-           CREATE TABLE IF NOT EXISTS 'Auteur' (
-            id SERIAL PRIMARY KEY,
-            nom CHAR(22),
-            prenom CHAR(22),
-           )
-           END-EXEC.
+OCESQL*    EXEC SQL  
+OCESQL*    CREATE TABLE IF NOT EXISTS 'Auteur' (
+OCESQL*     id SERIAL PRIMARY KEY,
+OCESQL*     nom CHAR(22),
+OCESQL*     prenom CHAR(22),
+OCESQL*    )
+OCESQL*    END-EXEC.
+OCESQL     CALL "OCESQLExec" USING
+OCESQL          BY REFERENCE SQLCA
+OCESQL          BY REFERENCE SQ0002
+OCESQL     END-CALL.
 
-           EXEC SQL  
-           CREATE TABLE IF NOT EXISTS 'emprunt' (
-            code CHAR(13),
-            nom CHAR(22),
-            prenom CHAR(22),
-            tel CHAR(10),
-            date CHAR(10),
-            retour CHAR(10)
-           )
-           END-EXEC.
+OCESQL*    EXEC SQL  
+OCESQL*    CREATE TABLE IF NOT EXISTS 'emprunt' (
+OCESQL*     code CHAR(13),
+OCESQL*     nom CHAR(22),
+OCESQL*     prenom CHAR(22),
+OCESQL*     tel CHAR(10),
+OCESQL*     date CHAR(10),
+OCESQL*     retour CHAR(10)
+OCESQL*    )
+OCESQL*    END-EXEC.
+OCESQL     CALL "OCESQLExec" USING
+OCESQL          BY REFERENCE SQLCA
+OCESQL          BY REFERENCE SQ0003
+OCESQL     END-CALL.
 
            EXIT.
        0100-CREATION-TABLE-FIN.
