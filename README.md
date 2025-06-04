@@ -116,3 +116,12 @@
       *Paragraphe gérant la suppression d'un enregistrement
       *si le livre n'est pas emprunté actuellement.
 ```
+
+
+# AXE D'AMLIORATION.
+```
+-
+-
+-
+-
+```
