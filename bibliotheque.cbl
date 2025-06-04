@@ -79,7 +79,11 @@
                 10 WS-E-RETOUR   PIC X(10).
 
        01  WS-CHOIX              PIC 9(01).
+       01  WS-CHOIX-2            PIC 9(01).
        01  WS-SAISIE             PIC X(255).
+       01  WS-REPONSE-AJ         PIC X(01) VALUE "O".
+       01  WS-CALCUL             PIC 9(03).
+       01  WS-COMPT-TEMP         PIC 9(03).
 
        EXEC SQL BEGIN DECLARE SECTION END-EXEC.
            01 LIVRE-ID           PIC X(03).
@@ -90,13 +94,14 @@
            01 LIVRE-ANNEE        PIC X(04).
            01 LIVRE-EDITION      PIC X(23).
            01 LIVRE-COMPT        PIC X(03).
+           01 LIVRE-PRET         PIC X(03).
            01 LIVRE-DISPO        PIC X(03).
 
            01 AUTEUR-ID          PIC X(03).
            01 AUTEUR-NOM         PIC X(22).
            01 AUTEUR-PRENOM      PIC X(22).
 
-           01 EMPRUNT-CODE       PIC X(13).
+           01 EMPRUNT-ID         PIC X(03).
            01 EMPRUNT-NOM        PIC X(22).
            01 EMPRUNT-PRENOM     PIC X(22).
            01 EMPRUNT-TELEPHONE  PIC X(10).
@@ -156,7 +161,7 @@
                DISPLAY "2 - Afficher un enregistrement"
                DISPLAY "3 - Mettre a jour un enregistrement"
                DISPLAY "4 - Supprimer un enregistrement"
-               DISPLAY "9 - Quitter"
+               DISPLAY "0 - Quitter"
                ACCEPT WS-CHOIX
                EVALUATE WS-CHOIX
                    WHEN = 1
@@ -171,6 +176,8 @@
                    WHEN = 4
                        PERFORM 0240-SUPPR-DEB
                        THRU    0240-SUPPR-FIN
+                   WHEN = 0
+                       DISPLAY "Vous quittez le programme"
                    WHEN OTHER
                        DISPLAY "Mauvaise saisie, veuillez recommencer"
              END-PERFORM
@@ -185,29 +192,543 @@
       ******************************************************************
        0210-AJOUT-DEB.
       *Ajout table livre + Auteur (Si n'exsite pas).
+           MOVE 0 TO WS-REPONSE-AJ.
+       PERFORM UNTIL WS-REPONSE-AJ = "N"
+
+           DISPLAY "Entrez le code de livre : "
+           ACCEPT LIVRE-CODE 
+           
+           EXEC SQL
+              SELECT livre_id, titre, compt
+              INTO :LIVRE-ID, :LIVRE-TITRE, :LIVRE-COMPT
+              FROM livre
+              WHERE code = :LIVRE-CODE
+           END-EXEC
+
+           IF SQLCODE = 0
+             DISPLAY "Livre deja existant. ID = " LIVRE-CODE LIVRE-TITRE
+
+      * posibiliter ajouter compte de livre     
+             DISPLAY "Ajoutez nombres des exemplaires : "
+             DISPLAY "Tapez 0 pour non rien ajouter :  "
+
+             MOVE LIVRE-COMPT TO WS-COMPT-TEMP
+             ACCEPT WS-CALCUL
+
+             ADD WS-CALCUL TO WS-COMPT-TEMP
+             MOVE WS-COMPT-TEMP TO LIVRE-COMPT
+
+           
+             EXEC SQL
+                 UPDATE livre
+                 SET compt = :LIVRE-COMPT
+                 WHERE code = :LIVRE-CODE
+             END-EXEC
+     
+             IF SQLCODE = 0
+                 EXEC SQL COMMIT END-EXEC
+                 DISPLAY ">>> LES exemplaires bien ajoutes."
+             ELSE
+                 DISPLAY "Erreur mise a jour. SQLCODE: " 
+                 SQLCODE
+             END-IF
+
+           ELSE
+             DISPLAY "Livre pas trover. Vous pouvez ajouter."
+         
+             DISPLAY "Entrrez le titre de livre"
+             ACCEPT  LIVRE-TITRE
+  
+             DISPLAY "Entrrez le nom d'auteur "
+             ACCEPT AUTEUR-NOM
+
+             DISPLAY "Entrrez le prenome d'auteur"
+             ACCEPT AUTEUR-PRENOM 
+             
+
+
+             EXEC SQL
+                SELECT auteur_id INTO :AUTEUR-ID
+                FROM auteur
+                WHERE nom = :AUTEUR-NOM AND prenom = :AUTEUR-PRENOM
+             END-EXEC
+
+             IF SQLCODE NOT = 0 THEN
+                DISPLAY ">>> Auteur pas trouve. l'ajoutez."
+                DISPLAY AUTEUR-NOM " "AUTEUR-PRENOM
+
+                EXEC SQL
+                    INSERT INTO auteur (nom, prenom)
+                    VALUES (:AUTEUR-NOM, :AUTEUR-PRENOM)
+                END-EXEC
+               DISPLAY SQLCODE
+                
+
+                IF SQLCODE = 0 THEN
+                    EXEC SQL COMMIT END-EXEC
+                    DISPLAY ">>> Auteur ajoute."
+
+                   EXEC SQL
+                     SELECT auteur_id INTO :AUTEUR-ID
+                     FROM auteur
+                     WHERE nom = :AUTEUR-NOM AND prenom = :AUTEUR-PRENOM
+                   END-EXEC
+
+                   MOVE AUTEUR-ID TO LIVRE-A-ID 
+
+                   DISPLAY "Entrrez le type de livre "
+                   ACCEPT LIVRE-TYPE
+           
+                   DISPLAY "Entrrez l'annee de sortie"
+                   ACCEPT LIVRE-ANNEE
+           
+                   DISPLAY "Entrrez l'edition "
+                   ACCEPT LIVRE-EDITION
+           
+                   DISPLAY "Entrrez le nombme de livre"
+                   ACCEPT LIVRE-COMPT
+
+                   MOVE "OUI" TO LIVRE-DISPO
+           
+                   EXEC SQL
+                    INSERT INTO livre
+                    (code, titre, auteur_id, type, annee, edition, 
+                    compt, pret, dispo)
+                    VALUES (:LIVRE-CODE, :LIVRE-TITRE, 
+                            :LIVRE-A-ID, :LIVRE-TYPE, :LIVRE-ANNEE, 
+                            :LIVRE-EDITION, :LIVRE-COMPT, :LIVRE-DISPO)
+                   END-EXEC
+                   
+           
+                   IF SQLCODE = 0
+                       EXEC SQL COMMIT END-EXEC
+                       DISPLAY " >>> Livre bien ajouté."
+                   ELSE
+                       DISPLAY "Erreur lors de l'ajout. SQLCODE: "
+                                                                SQLCODE
+                   END-IF
+                ELSE
+                    DISPLAY "Erreur insertion auteur. SQLCODE: " SQLCODE
+                END-IF
+
+              END-IF
+             
+           END-IF 
+
+           DISPLAY "Voulez-vous ajouter un autre livre ? (O/N): "
+           ACCEPT WS-REPONSE-AJ
+           MOVE FUNCTION UPPER-CASE(WS-REPONSE-AJ) TO WS-REPONSE-AJ
+       END-PERFORM.
+      
            
            EXIT.
+           
        0210-AJOUT-FIN.
 
       ******************************************************************     
        0220-LIRE-DEB.
       *Lecture Livre JOINTURE Auteur + Emprunt(Si livre pas dispo).
+       DISPLAY 'Saisir le titre recherché: ' WITH NO ADVANCING.
+       ACCEPT LIVRE-TITRE.
+       EXEC SQL 
+            SELECT code, titre, auteurid, type, annee, edition, dispo
+            INTO :LIVRE-CODE :LIVRE-TITRE :LIVRE-A-ID :LIVRE-TYPE
+                 :LIVRE-ANNEE :LIVRE-EDITION :LIVRE-DISPO
+            FROM livre
+            WHERE titre = :LIVRE-TITRE
+       END-EXEC.
+
+       EXEC SQL 
+            SELECT auteur_id, nom, prenom 
+            INTO :AUTEUR-ID :AUTEUR-NOM :AUTEUR-PRENOM
+            FROM auteur
+            WHERE id = :LIVRE-A-ID
+       END-EXEC.
+
+       DISPLAY ' '.
+       DISPLAY 'Code du livre------>: ' LIVRE-CODE.
+       DISPLAY 'Titre-------------->: ' LIVRE-TITRE.
+       DISPLAY 'Auteur------------->: ' AUTEUR-NOM ' ' AUTEUR-PRENOM.
+       DISPLAY 'Type--------------->: ' LIVRE-TYPE.
+       DISPLAY 'Année de publication: ' LIVRE-ANNEE.
+       DISPLAY 'Edition------------>: ' LIVRE-EDITION.
+       DISPLAY 'Disponible--------->: ' LIVRE-DISPO.
+
+       IF LIVRE-COMPT = LIVRE-PRET THEN
+          PERFORM UNTIL SQLCODE = 100
+            EXEC SQL 
+                 SELECT livre_id, nom, prenom, tel, date, retour
+                 INTO :LIVRE-ID :EMPRUNT-NOM :EMPRUNT-PRENOM 
+                      :EMPRUNT-TELEPHONE :EMPRUNT-DATE :EMPRUNT-RETOUR
+                 FROM emprunt
+                 WHERE livre_id = :LIVRE-ID
+            END-EXEC ''
+           
+            DISPLAY 'Emprunté par  : ' EMPRUNT-NOM ' ' EMPRUNT-PRENOM
+            DISPLAY 'Telephone     : ' EMPRUNT-TELEPHONE
+            DISPLAY "Date d'emprunt: " EMPRUNT-DATE
+            DISPLAY 'Date de retour: ' EMPRUNT-RETOUR
+          END-PERFORM
+       END-IF.
 
            EXIT.
        0220-LIRE-FIN.
 
       ******************************************************************
        0230-MAJ-DEB.
+      *On réinitialise la variable pour le choix.
            MOVE 1 TO WS-CHOIX.
       *Menu choix de table pour maj.
+           PERFORM UNTIL WS-CHOIX = 0
+      *On affiche les différentes possibilités.
+             DISPLAY "1 - Modifier un livre"
+             DISPLAY "2 - Modifier un emprunt"
+             DISPLAY "3 - Modifier un auteur"
+             DISPLAY "0 - Quitter"
+      *On demande à l'utilisateur son choix.
+             ACCEPT WS-CHOIX
+      *En fonction du choix on effectue la demande voulue.
+             EVALUATE WS-CHOIX
+      *Ici on va modifier la table livre avec l'id souhaité.
+               WHEN = 1
+                 PERFORM 0231-MAJ-LIVRE-DEB
+                 THRU    0231-MAJ-LIVRE-FIN
+      *Ici on va modifier la table emprunt avec le code souhaité.
+               WHEN = 2
+                 PERFORM 0232-MAJ-AUTEUR-DEB
+                 THRU    0232-MAJ-AUTEUR-FIN
+      *Ici on va modifier la table auteur avec l'id souhaité
+               WHEN = 3
+                 PERFORM 0233-MAJ-EMPRUNT-DEB
+                 THRU    0233-MAJ-EMPRUNT-FIN
+      *Choix de sortie pour ne pas afficher le message d'erreur.
+               WHEN = 0
+                       DISPLAY "Vous sortez du menu de MAJ"
+      *Gestion de mauvaise saisie utilisateur.
+               WHEN OTHER 
+                 DISPLAY "Mauvaise saisie, veuillez recommencer"
+             END-EVALUATE
+           END-PERFORM.
 
            EXIT.
        0230-MAJ-FIN.
+
+       0231-MAJ-LIVRE-DEB.
+           DISPLAY "Veuillez renseigner le titre: "
+      *On demande l'id souhaité à l'utilisateur.
+           ACCEPT WS-SAISIE
+      *On déplace le choix dans la variable correspondante.
+           MOVE WS-SAISIE TO LIVRE-TITRE
+      *On affiche le livre souhaité.
+           EXEC SQL  
+             SELECT livre_id code, titre, auteur_id, type, annee, 
+             edition, compt, pret, dispo
+             INTO :LIVRE-ID, :LIVRE-CODE, :LIVRE-TITRE, :LIVRE-A-ID,
+             :LIVRE-TYPE, :LIVRE-ANNEE, :LIVRE-EDITION,
+             :LIVRE-COMPT, :LIVRE-PRET, :LIVRE-DISPO
+             FROM livre
+             WHERE titre = :LIVRE-TITRE
+           END-EXEC
+      
+           DISPLAY "ID Livre: "  LIVRE-ID
+           DISPLAY "ISBN: "      LIVRE-CODE
+           DISPLAY "Titre: "     LIVRE-TITRE
+           DISPLAY "ID Auteur: " LIVRE-A-ID
+           DISPLAY "Type: "      LIVRE-TYPE
+           DISPLAY "Annee: "     LIVRE-ANNEE
+           DISPLAY "Editeur: "   LIVRE-EDITION
+           DISPLAY "Compte: "    LIVRE-COMPT
+
+      *On réinitialise la variable de choix.
+           MOVE 1 TO WS-CHOIX-2
+      *On demande à l'utilisateur ce qu'il veut modifier.
+           PERFORM UNTIL WS-CHOIX-2 = 0
+             DISPLAY "1 - Modifier l'ISBN"
+             DISPLAY "2 - Modifier le titre"
+             DISPLAY "3 - Modifier l'auteur"
+             DISPLAY "4 - Modifier le type"
+             DISPLAY "5 - Modifier l'année"
+             DISPLAY "6 - Modifier l'éditeur"
+             DISPLAY "7 - Modifier le compte"
+             DISPLAY "0 - Quitter"
+             ACCEPT WS-SAISIE
+             MOVE WS-SAISIE TO WS-CHOIX-2
+             EVALUATE WS-CHOIX-2
+               WHEN = 1
+                 DISPLAY "Veuillez saisir le nouveau code: "
+                 ACCEPT WS-SAISIE
+                 MOVE WS-SAISIE TO LIVRE-CODE
+                 EXEC SQL  
+                     UPDATE livre
+                     SET code = :LIVRE-CODE
+                     WHERE titre = :LIVRE-TITRE
+                 END-EXEC
+               WHEN = 2
+                 DISPLAY "Veuillez saisir le nouveau titre: "
+                 ACCEPT WS-SAISIE
+                 MOVE WS-SAISIE TO LIVRE-TITRE
+                 EXEC SQL  
+                     UPDATE livre
+                     SET titre = :LIVRE-TITRE
+                     WHERE titre = :LIVRE-TITRE
+                 END-EXEC
+               WHEN = 3
+                 DISPLAY "Veuillez saisir le nouvel auteur (ID): "
+                 ACCEPT WS-SAISIE
+                 MOVE WS-SAISIE TO LIVRE-A-ID
+                 EXEC SQL  
+                     UPDATE livre
+                     SET auteur_id = :LIVRE-A-ID
+                     WHERE titre = :LIVRE-TITRE
+                 END-EXEC
+               WHEN = 4
+                 DISPLAY "Veuillez saisir le nouveau type: "
+                 ACCEPT WS-SAISIE
+                 MOVE WS-SAISIE TO LIVRE-TYPE
+                 EXEC SQL  
+                     UPDATE livre
+                     SET type = :LIVRE-TYPE
+                     WHERE titre = :LIVRE-TITRE
+                 END-EXEC
+               WHEN = 5
+                 DISPLAY "Veuillez saisir la nouvelle annee: "
+                 ACCEPT WS-SAISIE
+                 MOVE WS-SAISIE TO LIVRE-ANNEE
+                 EXEC SQL  
+                     UPDATE livre
+                     SET annee = :LIVRE-ANNEE
+                     WHERE titre = :LIVRE-TITRE
+                 END-EXEC
+               WHEN = 6
+                 DISPLAY "Veuillez saisir le nouvel editeur: "
+                 ACCEPT WS-SAISIE
+                 MOVE WS-SAISIE TO LIVRE-EDITION
+                 EXEC SQL  
+                     UPDATE livre
+                     SET edition = :LIVRE-EDITION
+                     WHERE titre = :LIVRE-TITRE
+                 END-EXEC
+               WHEN = 7
+                 DISPLAY "Veuillez saisir la nouvelle quantite: "
+                 ACCEPT WS-SAISIE
+                 MOVE WS-SAISIE TO LIVRE-COMPT
+                 EXEC SQL  
+                     UPDATE livre
+                     SET compt = :LIVRE-COMPT
+                     WHERE titre = :LIVRE-TITRE
+                 END-EXEC
+               WHEN = 0
+                 DISPLAY "Vous arretez de modifier ce livre"
+               WHEN OTHER
+                 DISPLAY "Mauvaise saisie, veuillez recommencer"
+             END-EVALUATE
+      *Message de gestion d'erreur.
+             IF SQLCODE = 0
+               DISPLAY "Modification réussie."
+             ELSE
+               DISPLAY "Erreur de modification SQLCODE: " SQLCODE
+             END-IF
+           END-PERFORM.
+
+           EXIT.
+       0231-MAJ-LIVRE-FIN.
+
+       0232-MAJ-AUTEUR-DEB.
+           DISPLAY "Veuillez renseigner le nom: "
+      *On demande le nom souhaité à l'utilisateur.
+           ACCEPT WS-SAISIE
+      *On déplace le choix dans la variable correspondante.
+           MOVE WS-SAISIE TO AUTEUR-NOM
+      *On affiche l'auteur souhaité.
+           EXEC SQL  
+               SELECT auteur_id, nom, prenom
+               INTO :AUTEUR-ID, :AUTEUR-NOM, :AUTEUR-PRENOM
+               FROM auteur
+               WHERE nom = :AUTEUR-NOM
+           END-EXEC
+
+           DISPLAY "ID Auteur: " AUTEUR-ID
+           DISPLAY "Nom: "       AUTEUR-NOM
+           DISPLAY "Prenom: "    AUTEUR-PRENOM
+          
+      *On réinitialise la variable de choix.
+           MOVE 1 TO WS-CHOIX-2
+      *On demande à l'utilisateur ce qu'il veut modifier.
+           PERFORM UNTIL WS-CHOIX-2 = 0
+             DISPLAY "1 - Modifier le nom"
+             DISPLAY "2 - Modifier le prenom"
+             DISPLAY "0 - Quitter"
+             ACCEPT WS-SAISIE
+             MOVE WS-SAISIE TO WS-CHOIX-2
+             EVALUATE WS-CHOIX-2
+               WHEN = 1
+                 DISPLAY "Veuillez saisir le nouveau nom"
+                 ACCEPT WS-SAISIE
+                 MOVE WS-SAISIE TO AUTEUR-NOM
+                 EXEC SQL  
+                     UPDATE auteur
+                     SET nom   = :AUTEUR-NOM
+                     WHERE nom = :AUTEUR-NOM
+                 END-EXEC
+               WHEN = 2
+                 DISPLAY "Veuillez saisir le nouveau prenom"
+                 ACCEPT WS-SAISIE
+                 MOVE WS-SAISIE TO AUTEUR-PRENOM
+                 EXEC SQL  
+                     UPDATE auteur
+                     SET prenom = :AUTEUR-PRENOM
+                     WHERE nom  = :AUTEUR-NOM
+                 END-EXEC
+               WHEN = 0
+                 DISPLAY "Vous arretez de modifier cet auteur"
+               WHEN OTHER
+                 DISPLAY "Mauvaise saisie, veuillez recommencer"
+             END-EVALUATE
+      *Message de gestion d'erreur.
+             IF SQLCODE = 0
+               DISPLAY "Modification réussie."
+             ELSE
+               DISPLAY "Erreur d'insertion SQLCODE: " SQLCODE
+             END-IF
+           END-PERFORM.
+
+           EXIT.
+       0232-MAJ-AUTEUR-FIN.
+
+       0233-MAJ-EMPRUNT-DEB.
+           DISPLAY "Veuillez renseigner l'id du livre: "
+      *On demande l'id du livre souhaité à l'utilisateur.
+           ACCEPT WS-SAISIE
+      *On déplace le choix dans la variable correspondante.
+           MOVE WS-SAISIE TO LIVRE-ID
+      *On affiche l'emprunt choisi.
+           EXEC SQL  
+             SELECT emprunt_id, livre_id, nom, prenom,
+                    tel, date, retour
+             INTO :EMPRUNT-ID, :LIVRE-ID, :EMPRUNT-NOM,
+             :EMPRUNT-PRENOM, :EMPRUNT-TELEPHONE, :EMPRUNT-DATE,
+             :EMPRUNT-RETOUR
+             FROM emprunt
+             WHERE livre_id = :LIVRE-ID
+           END-EXEC
+           
+           DISPLAY "ID Emprunt: "            EMPRUNT-ID
+           DISPLAY "ID Livre: "              LIVRE-ID
+           DISPLAY "Nom emprunteur: "        EMPRUNT-NOM
+           DISPLAY "Prenom emprunteur: "     EMPRUNT-PRENOM
+           DISPLAY "Telephone emprunteur: "  EMPRUNT-TELEPHONE
+           DISPLAY "Date d'emprunt: "        EMPRUNT-DATE
+           DISPLAY "Date de retour prévue: " EMPRUNT-RETOUR
+      
+      *On réinitialise la variable de choix.
+           MOVE 1 TO WS-CHOIX-2
+      *On demande à l'utilisateur ce qu'il veut modifier
+           PERFORM UNTIL WS-CHOIX-2 = 0
+             DISPLAY "1 - Modifier le nom"
+             DISPLAY "2 - Modifier le prenom"
+             DISPLAY "3 - Modifier le téléphone"
+             DISPLAY "4 - Modifier la date d'emprunt"
+             DISPLAY "5 - Modifier la date de retour"
+             DISPLAY "0 - Quitter"
+             ACCEPT WS-SAISIE
+             MOVE WS-SAISIE TO WS-CHOIX-2
+             EVALUATE WS-CHOIX-2
+               WHEN = 1
+                 DISPLAY "Veuillez saisir le nouveau nom"
+                 ACCEPT WS-SAISIE
+                 MOVE WS-SAISIE TO EMPRUNT-NOM
+                 EXEC SQL  
+                   UPDATE emprunt
+                   SET nom = :EMPRUNT-NOM
+                   WHERE livre_id = :LIVRE-ID
+                 END-EXEC
+               WHEN = 2
+                 DISPLAY "Veuillez saisir le nouveau prenom"
+                 ACCEPT WS-SAISIE
+                 MOVE WS-SAISIE TO EMPRUNT-PRENOM
+                 EXEC SQL  
+                   UPDATE emprunt
+                   SET prenom = :EMPRUNT-PRENOM
+                   WHERE livre_id = :LIVRE-ID
+                 END-EXEC
+               WHEN = 3
+                 DISPLAY "Veuillez saisir le nouveau telephone"
+                 ACCEPT WS-SAISIE
+                 MOVE WS-SAISIE TO EMPRUNT-TELEPHONE
+                 EXEC SQL  
+                   UPDATE emprunt
+                   SET tel = :EMPRUNT-TELEPHONE
+                   WHERE livre_id = :LIVRE-ID
+                 END-EXEC
+               WHEN = 4
+                 DISPLAY "Veuillez saisir la nouvelle date d'emprunt"
+                 ACCEPT WS-SAISIE
+                 MOVE WS-SAISIE TO EMPRUNT-DATE
+                 EXEC SQL  
+                   UPDATE emprunt
+                   SET date = :EMPRUNT-DATE
+                   WHERE livre_id = :LIVRE-ID
+                 END-EXEC
+               WHEN = 5
+                 DISPLAY "Veuillez saisir la nouvelle date de retour "
+                 ACCEPT WS-SAISIE
+                 MOVE WS-SAISIE TO EMPRUNT-RETOUR
+                 EXEC SQL  
+                   UPDATE emprunt
+                   SET retour = :EMPRUNT-RETOUR
+                   WHERE livre_id = :LIVRE-ID
+                 END-EXEC
+               WHEN = 0
+                 DISPLAY "Vous arretez de modifier cet emprunt"
+               WHEN OTHER
+                 DISPLAY "Mauvaise saisie, veuillez recommencer"
+
+      *Message de gestion d'erreur.
+                 IF SQLCODE = 0
+                   DISPLAY "Modification réussie."
+                 ELSE
+                   DISPLAY "Erreur de modification SQLCODE: " SQLCODE
+                 END-IF
+           END-PERFORM.
+
+           EXIT.
+       0233-MAJ-EMPRUNT-FIN.
 
       ******************************************************************
        0240-SUPPR-DEB.
            MOVE 1 TO WS-CHOIX.
       *Menu pour choix entre livre ou emprunt.
+           DISPLAY 'Saisir le titre à supprimer: ' WITH NO ADVANCING.
+       ACCEPT WS-SAISIE.
+       MOVE WS-SAISIE TO LIVRE-TITRE.
+       EXEC SQL 
+            SELECT code, titre, auteur_id, type, annee, edition, compt,
+                   pret,dispo
+            INTO :LIVRE-CODE :LIVRE-TITRE :LIVRE-A-ID :LIVRE-TYPE
+                 :LIVRE-ANNEE :LIVRE-EDITION :LIVRE-COMPT :LIVRE-PRET 
+                 :LIVRE-DISPO
+            FROM livre
+            WHERE titre = :LIVRE-TITRE
+       END-EXEC.
+       
+       IF SQLCODE = 0 THEN
+          IF LIVRE-PRET = 0 THEN
+             EXEC SQL 
+                  DELETE FROM  livre 
+                  WHERE titre = :LIVRE-TITRE
+             END-EXEC
+             IF SQLCODE = 0 THEN
+                DISPLAY 'Suppression effectuée.'
+             ELSE
+                DISPLAY "Erreur système, la suppression n'est pas"
+                         "effectuée."
+             END-IF
+          ELSE
+             DISPLAY 'Emprunt en cour, suppression non autorisée'
+          END-IF
+       ELSE
+             DISPLAY 'Erreur systeme, veuillez réessayer' SQLCODE
+       END-IF.
 
            EXIT.
        0240-SUPPR-FIN.
